@@ -201,17 +201,10 @@
         <section id="page-submit" class="page-content space-y-10">
             <h2 class="text-2xl font-black italic uppercase text-center">Registrar <span class="text-red-600">Ocorrência</span></h2>
             <div class="glass p-8 rounded-[2.5rem] max-w-2xl mx-auto space-y-6 border border-white/5">
-                <form id="reportForm" onsubmit="event.preventDefault(); submitReport();" class="space-y-6">
+                <form id="reportForm" class="space-y-6">
                     <div class="space-y-2">
                         <label class="text-[10px] uppercase font-black text-red-600 tracking-widest">O que você deseja relatar?</label>
-                        <select id="reportCategory" required class="input-field appearance-none">
-                            <option value="" disabled selected>Selecione uma categoria...</option>
-                            <option value="Quebra de Processo">Quebra de Processo</option>
-                            <option value="Segurança">Segurança / Falha de Blindagem</option>
-                            <option value="Conduta Inadequada">Conduta / Assédio / Respeito</option>
-                            <option value="Fraude ou Corrupção">Fraude ou Corrupção</option>
-                            <option value="Outros">Outros</option>
-                        </select>
+                        <input type="text" id="reportCategory" required class="input-field" placeholder="Ex: Quebra de Processo, Conduta, Segurança...">
                     </div>
 
                     <div class="space-y-2">
@@ -224,7 +217,7 @@
                         <div class="file-upload-wrapper input-field flex items-center justify-between">
                             <span id="fileNameDisplay" class="text-gray-500 italic truncate pr-4">Nenhum arquivo selecionado (Foto/Vídeo)</span>
                             <span class="text-[9px] font-black uppercase text-white bg-white/10 px-2 py-1 rounded">Escolher</span>
-                            <input type="file" id="reportFile" accept="image/*,video/*" onchange="handleFileSelect(this)">
+                            <input type="file" id="reportFile" accept="image/*,video/*">
                         </div>
                         <p class="text-[8px] text-gray-600 italic uppercase">* Limite de 1MB por anexo.</p>
                     </div>
@@ -245,7 +238,7 @@
                 <p class="text-xs text-gray-400 italic">Insira o código de protocolo gerado no momento da denúncia.</p>
                 <div class="flex gap-2">
                     <input type="text" id="protocolInput" class="input-field text-center font-mono uppercase" placeholder="VRZ-XXXX-XXXX">
-                    <button onclick="checkProtocol()" class="bg-white text-black px-6 rounded-xl font-black uppercase text-[10px]">Ver</button>
+                    <button id="checkProtocolBtn" class="bg-white text-black px-6 rounded-xl font-black uppercase text-[10px]">Ver</button>
                 </div>
                 <div id="protocolResult" class="hidden pt-6 text-left border-t border-white/5"></div>
             </div>
@@ -255,7 +248,7 @@
         <section id="page-admin" class="page-content space-y-8">
             <div class="flex justify-between items-end border-b border-white/5 pb-6">
                 <h2 class="text-3xl font-black italic uppercase text-red-600">Gestão de Integridade</h2>
-                <button onclick="logoutAdmin()" class="text-[9px] font-black uppercase text-gray-500 hover:text-white transition-colors">Encerrar Sessão</button>
+                <button id="logoutBtn" class="text-[9px] font-black uppercase text-gray-500 hover:text-white transition-colors">Encerrar Sessão</button>
             </div>
 
             <!-- Dashboard de Estatísticas -->
@@ -264,12 +257,11 @@
                     <div class="w-full max-w-[180px]">
                         <canvas id="adminPieChart"></canvas>
                     </div>
-                    <!-- UI para Gerar PDF Mensal -->
                     <div class="w-full pt-4 border-t border-white/5 flex flex-col gap-2">
                         <span class="text-[8px] font-black uppercase text-gray-500 text-center">Relatório Mensal</span>
                         <div class="flex gap-2">
                              <input type="month" id="reportMonthSelect" class="input-field !p-2 !text-[10px] !rounded-lg text-center">
-                             <button onclick="window.generatePDFReport()" class="bg-red-600 px-4 py-2 rounded-lg text-[10px] font-black uppercase italic tracking-tighter hover:bg-red-700 transition-colors">PDF</button>
+                             <button id="generatePdfBtn" class="bg-red-600 px-4 py-2 rounded-lg text-[10px] font-black uppercase italic tracking-tighter hover:bg-red-700 transition-colors">PDF</button>
                         </div>
                     </div>
                 </div>
@@ -289,7 +281,6 @@
                 </div>
             </div>
 
-            <!-- Navegação por Abas -->
             <div class="flex flex-wrap gap-2 border-b border-white/5 pb-4">
                 <button onclick="setAdminTab('Todos')" id="tab-Todos" class="admin-tab-btn">Todos</button>
                 <button onclick="setAdminTab('Em Análise')" id="tab-Análise" class="admin-tab-btn active">Triagem</button>
@@ -298,13 +289,13 @@
             </div>
             
             <div id="reportsList" class="space-y-4 max-h-[700px] overflow-y-auto pr-4 custom-scrollbar">
-                <p class="text-center italic text-gray-600 py-20">Sincronizando com a base de dados...</p>
+                <p class="text-center italic text-gray-600 py-20">Aguardando login...</p>
             </div>
         </section>
 
     </main>
 
-    <!-- Modal de Sucesso -->
+    <!-- Modais -->
     <div id="modalSuccess" class="hidden fixed inset-0 z-[200] flex items-center justify-center p-6 bg-black/95 backdrop-blur-xl">
         <div class="glass p-10 rounded-[3rem] text-center max-w-md space-y-6 border border-red-600/30">
             <div class="w-16 h-16 bg-red-600 rounded-full flex items-center justify-center mx-auto animate-bounce">
@@ -316,7 +307,7 @@
             <p class="text-gray-400 text-sm">Protocolo gerado com sucesso. Copie e guarde para consultas futuras.</p>
             <div class="flex items-center gap-2 bg-white/5 p-4 rounded-xl border border-white/10">
                 <div id="protocolCode" class="flex-1 font-mono text-red-500 text-lg font-bold"></div>
-                <button onclick="copyProtocol()" class="p-2 hover:bg-white/10 rounded-lg transition-colors" title="Copiar">
+                <button id="copyProtocolBtn" class="p-2 hover:bg-white/10 rounded-lg transition-colors" title="Copiar">
                     <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7v8a2 2 0 002 2h6M8 7V5a2 2 0 012-2h4.586a1 1 0 01.707.293l4.414 4.414a1 1 0 01.293.707V15a2 2 0 01-2 2h-2M8 7H6a2 2 0 00-2 2v10a2 2 0 002 2h8a2 2 0 002-2v-2" />
                     </svg>
@@ -326,7 +317,6 @@
         </div>
     </div>
 
-    <!-- Modal Admin Login -->
     <div id="modalAdminLogin" class="hidden fixed inset-0 z-[200] flex items-center justify-center p-6 bg-black/90 backdrop-blur-md">
         <div class="glass p-8 rounded-[2.5rem] w-full max-w-sm space-y-6">
             <h3 class="text-lg font-black uppercase italic text-center">Auditoria Ética</h3>
@@ -336,12 +326,11 @@
             </div>
             <div class="flex gap-2">
                 <button onclick="closeAdminModal()" class="flex-1 text-[10px] font-black uppercase py-3 border border-white/10 rounded-xl">Cancelar</button>
-                <button onclick="verifyAdmin()" class="flex-1 bg-red-600 text-[10px] font-black uppercase py-3 rounded-xl">Entrar</button>
+                <button id="verifyAdminBtn" class="flex-1 bg-red-600 text-[10px] font-black uppercase py-3 rounded-xl">Entrar</button>
             </div>
         </div>
     </div>
 
-    <!-- Modal Resposta (Admin) -->
     <div id="modalReply" class="hidden fixed inset-0 z-[200] flex items-center justify-center p-6 bg-black/90 backdrop-blur-md">
         <div class="glass p-8 rounded-[2.5rem] w-full max-w-lg space-y-6">
             <h3 class="text-lg font-black uppercase italic">Responder Denúncia</h3>
@@ -349,7 +338,7 @@
             <textarea id="replyText" class="input-field" rows="4" placeholder="Escreva o feedback para o denunciante..."></textarea>
             <div class="flex gap-2">
                 <button onclick="document.getElementById('modalReply').classList.add('hidden')" class="flex-1 text-[10px] font-black uppercase py-3 border border-white/10 rounded-xl">Cancelar</button>
-                <button onclick="submitReply()" class="flex-1 bg-blue-600 text-[10px] font-black uppercase py-3 rounded-xl">Salvar Resposta</button>
+                <button id="saveReplyBtn" class="flex-1 bg-blue-600 text-[10px] font-black uppercase py-3 rounded-xl">Salvar Resposta</button>
             </div>
         </div>
     </div>
@@ -363,6 +352,7 @@
         import { getAuth, signInAnonymously, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
         import { getFirestore, collection, addDoc, onSnapshot, serverTimestamp, doc, deleteDoc, updateDoc } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
 
+        // Configuração Firebase (Sincronizada com seu projeto)
         const firebaseConfig = {
             apiKey: "AIzaSyAfvmNT31fj5uQsDmb-q-kziFpWXMRxMzs",
             authDomain: "portal-vrz-81ba7.firebaseapp.com",
@@ -374,14 +364,13 @@
         
         const appId = 'vrz-integrity-v1';
         let auth, db, user = null, isAdmin = false, currentAdminTab = 'Em Análise', adminChart = null;
-        let lastFullDataSnapshot = []; // Cache para cálculos e PDF
+        let lastFullDataSnapshot = [];
 
-        window.onload = async () => {
+        // Inicialização
+        window.addEventListener('load', async () => {
             const loader = document.getElementById('loader');
-            // Definir mês atual no seletor de relatório
             const now = new Date();
-            const monthStr = now.toISOString().substring(0, 7);
-            document.getElementById('reportMonthSelect').value = monthStr;
+            document.getElementById('reportMonthSelect').value = now.toISOString().substring(0, 7);
 
             try {
                 const app = initializeApp(firebaseConfig);
@@ -390,37 +379,44 @@
                 await signInAnonymously(auth);
                 onAuthStateChanged(auth, (u) => { user = u; });
             } catch (e) {
-                showToast("Erro de conexão.");
+                showToast("Erro de conexão com servidor.");
             } finally {
-                setTimeout(() => { if(loader) { loader.style.opacity = '0'; setTimeout(() => loader.remove(), 500); } }, 1000);
+                setTimeout(() => { 
+                    if(loader) { 
+                        loader.style.opacity = '0'; 
+                        setTimeout(() => loader.remove(), 500); 
+                    } 
+                }, 1000);
             }
-        };
+        });
 
+        // Navegação
         window.showPage = (id) => {
             document.querySelectorAll('.page-content').forEach(p => p.classList.remove('active'));
             document.querySelectorAll('.nav-link').forEach(l => l.classList.remove('active'));
             document.querySelectorAll('.mobile-nav div').forEach(d => d.classList.replace('bg-red-600', 'bg-transparent'));
+            
             document.getElementById(`page-${id}`)?.classList.add('active');
             document.getElementById(`nav-${id}`)?.classList.add('active');
             document.getElementById(`m-nav-${id}`)?.classList.replace('bg-transparent', 'bg-red-600');
             window.scrollTo({top: 0, behavior: 'smooth'});
         };
 
-        window.handleFileSelect = (input) => {
+        // Arquivos
+        document.getElementById('reportFile').addEventListener('change', function() {
             const fileNameDisplay = document.getElementById('fileNameDisplay');
-            if (input.files && input.files[0]) {
-                const file = input.files[0];
+            if (this.files && this.files[0]) {
+                const file = this.files[0];
                 if (file.size > 1024 * 1024) {
                     showToast("Arquivo muito grande (Máx 1MB)");
-                    input.value = '';
-                    fileNameDisplay.innerText = "Nenhum arquivo selecionado (Foto/Vídeo)";
+                    this.value = '';
+                    fileNameDisplay.innerText = "Nenhum arquivo selecionado";
                     return;
                 }
                 fileNameDisplay.innerText = file.name;
-                fileNameDisplay.classList.remove('text-gray-500');
-                fileNameDisplay.classList.add('text-white');
+                fileNameDisplay.classList.replace('text-gray-500', 'text-white');
             }
-        };
+        });
 
         const fileToBase64 = (file) => new Promise((resolve, reject) => {
             const reader = new FileReader();
@@ -429,8 +425,11 @@
             reader.onerror = error => reject(error);
         });
 
-        window.submitReport = async () => {
+        // Envio de Relato
+        document.getElementById('reportForm').addEventListener('submit', async (e) => {
+            e.preventDefault();
             if (!user || !db) return;
+
             const btn = document.getElementById('submitBtn');
             const category = document.getElementById('reportCategory').value;
             const text = document.getElementById('reportText').value.trim();
@@ -440,7 +439,7 @@
 
             const protocol = "VRZ-" + Math.random().toString(36).substr(2, 4).toUpperCase() + "-" + Math.random().toString(36).substr(2, 4).toUpperCase();
             btn.disabled = true;
-            btn.innerText = "Processando...";
+            btn.innerText = "Criptografando...";
 
             let fileData = null, fileType = null;
             if (fileInput.files && fileInput.files[0]) {
@@ -458,23 +457,28 @@
                     status: 'Em Análise',
                     response: '',
                     timestamp: serverTimestamp(),
-                    updatedAt: serverTimestamp() // Início da trilha de tempo
+                    updatedAt: serverTimestamp()
                 });
                 document.getElementById('reportForm').reset();
-                document.getElementById('fileNameDisplay').innerText = "Nenhum arquivo selecionado (Foto/Vídeo)";
+                document.getElementById('fileNameDisplay').innerText = "Nenhum arquivo selecionado";
                 document.getElementById('protocolCode').innerText = protocol;
                 document.getElementById('modalSuccess').classList.remove('hidden');
-            } catch (e) { showToast("Erro ao enviar."); } finally {
+            } catch (e) { 
+                showToast("Erro ao processar envio."); 
+            } finally {
                 btn.disabled = false; btn.innerText = "Enviar Relato Criptografado";
             }
-        };
+        });
 
-        window.checkProtocol = () => {
+        // Consulta de Protocolo
+        document.getElementById('checkProtocolBtn').addEventListener('click', () => {
             const input = document.getElementById('protocolInput').value.trim().toUpperCase();
             const resultDiv = document.getElementById('protocolResult');
             if (!input) return;
-            resultDiv.innerHTML = '<p class="text-gray-500 italic text-center py-4">Buscando...</p>';
+
+            resultDiv.innerHTML = '<p class="text-gray-500 italic text-center py-4">Buscando na base segura...</p>';
             resultDiv.classList.remove('hidden');
+
             const ref = collection(db, 'artifacts', appId, 'public', 'data', 'reports');
             onSnapshot(ref, (snap) => {
                 const report = snap.docs.find(d => d.data().protocol === input);
@@ -483,27 +487,37 @@
                     const statusColor = data.status === 'Resolvido' ? 'text-green-500' : (data.status === 'Em Investigação' ? 'text-yellow-500' : 'text-red-600');
                     resultDiv.innerHTML = `
                         <div class="space-y-4 animate-fadeIn">
-                            <div><span class="text-[9px] uppercase font-black text-gray-500">Estado</span><p class="text-lg font-bold italic uppercase ${statusColor}">${data.status}</p></div>
-                            <div class="bg-white/5 p-4 rounded-xl border border-white/5"><span class="text-[9px] uppercase font-black text-white">Feedback</span><p class="text-xs italic text-gray-400 mt-2">${data.response || 'Relato em análise.'}</p></div>
+                            <div><span class="text-[9px] uppercase font-black text-gray-500">Estado Atual</span><p class="text-lg font-bold italic uppercase ${statusColor}">${data.status}</p></div>
+                            <div class="bg-white/5 p-4 rounded-xl border border-white/5"><span class="text-[9px] uppercase font-black text-white">Feedback do Comitê de Ética</span><p class="text-xs italic text-gray-400 mt-2">${data.response || 'Seu relato está sendo triado pela equipe de integridade.'}</p></div>
                         </div>`;
-                } else resultDiv.innerHTML = '<p class="text-red-500 text-xs text-center py-4">Não encontrado.</p>';
+                } else {
+                    resultDiv.innerHTML = '<p class="text-red-500 text-xs text-center py-4">Protocolo inválido ou não encontrado.</p>';
+                }
             });
-        };
+        });
 
+        // Admin Logics
         window.openAdminModal = () => document.getElementById('modalAdminLogin').classList.remove('hidden');
         window.closeAdminModal = () => document.getElementById('modalAdminLogin').classList.add('hidden');
-        window.verifyAdmin = () => {
+        
+        document.getElementById('verifyAdminBtn').addEventListener('click', () => {
             if (document.getElementById('adminPass').value === "VRZ2024") {
                 isAdmin = true; closeAdminModal(); showPage('admin'); loadReportsAdmin();
-            } else showToast("Senha Incorreta");
-        };
-        window.logoutAdmin = () => { isAdmin = false; showPage('home'); };
+            } else {
+                showToast("Credenciais incorretas");
+            }
+        });
+
+        document.getElementById('logoutBtn').addEventListener('click', () => { 
+            isAdmin = false; 
+            showPage('home'); 
+            document.getElementById('reportsList').innerHTML = '<p class="text-center italic text-gray-600 py-20">Sessão encerrada.</p>';
+        });
 
         window.setAdminTab = (tab) => {
             currentAdminTab = tab;
             document.querySelectorAll('.admin-tab-btn').forEach(b => b.classList.remove('active'));
-            const parts = tab.split(' ');
-            const suffix = parts[parts.length - 1];
+            const suffix = tab.split(' ').pop();
             document.getElementById(`tab-${suffix}`)?.classList.add('active');
             loadReportsAdmin();
         };
@@ -511,7 +525,6 @@
         function updateAdminChart(triagem, investigacao, resolvido) {
             const ctx = document.getElementById('adminPieChart').getContext('2d');
             if (adminChart) adminChart.destroy();
-            
             adminChart = new Chart(ctx, {
                 type: 'pie',
                 data: {
@@ -523,100 +536,63 @@
                         borderWidth: 2
                     }]
                 },
-                options: {
-                    responsive: true,
-                    plugins: { legend: { display: false } }
-                }
+                options: { responsive: true, plugins: { legend: { display: false } } }
             });
-
             document.getElementById('countTriagem').innerText = triagem;
             document.getElementById('countInvestigacao').innerText = investigacao;
             document.getElementById('countResolvido').innerText = resolvido;
         }
 
-        // Função para formatar milissegundos em Dias e Horas
-        function formatDuration(ms) {
-            if (ms < 0) return "N/A";
-            const days = Math.floor(ms / (1000 * 60 * 60 * 24));
-            const hours = Math.floor((ms % (1000 * 60 * 60 * 24)) / (1000 * 60 * 60));
-            return `${days}d ${hours}h`;
-        }
-
-        // GERAÇÃO DE RELATÓRIO PDF
-        window.generatePDFReport = () => {
+        // PDF Report
+        document.getElementById('generatePdfBtn').addEventListener('click', () => {
             const { jsPDF } = window.jspdf;
             const docPdf = new jsPDF();
             const targetMonth = document.getElementById('reportMonthSelect').value;
             
-            if (!targetMonth) { showToast("Selecione o mês"); return; }
-            
-            // Filtrar dados do cache para o mês selecionado
             const monthReports = lastFullDataSnapshot.filter(r => {
                 if (!r.timestamp) return false;
-                const date = new Date(r.timestamp.seconds * 1000);
-                return date.toISOString().startsWith(targetMonth);
+                return new Date(r.timestamp.seconds * 1000).toISOString().startsWith(targetMonth);
             });
 
-            if (monthReports.length === 0) { showToast("Sem dados para este mês"); return; }
+            if (monthReports.length === 0) { showToast("Sem dados para este período"); return; }
 
-            const triagem = monthReports.filter(r => r.status === 'Em Análise').length;
-            const investigacao = monthReports.filter(r => r.status === 'Em Investigação').length;
-            const resolvido = monthReports.filter(r => r.status === 'Resolvido').length;
-
-            // Cálculos de Tempo Médio
-            let totalCycleTime = 0; // Cadastro até conclusão
-            let resolvedCount = 0;
-
-            monthReports.forEach(r => {
-                if (r.status === 'Resolvido' && r.timestamp && r.updatedAt) {
-                    const start = r.timestamp.seconds * 1000;
-                    const end = r.updatedAt.seconds * 1000;
-                    totalCycleTime += (end - start);
-                    resolvedCount++;
-                }
-            });
-
-            const avgCycleTime = resolvedCount > 0 ? formatDuration(totalCycleTime / resolvedCount) : "N/A";
-
-            // Montagem do PDF
             docPdf.setFontSize(20);
             docPdf.text('VRZ Integrity Unit', 105, 20, null, null, 'center');
-            docPdf.setFontSize(12);
-            docPdf.text(`Relatório de Conformidade Ética - ${targetMonth}`, 105, 30, null, null, 'center');
+            docPdf.setFontSize(10);
+            docPdf.text(`Relatório Mensal de Integridade - ${targetMonth}`, 105, 30, null, null, 'center');
+
+            const metrics = [
+                ['Total de Ocorrências', monthReports.length],
+                ['Em Triagem', monthReports.filter(r => r.status === 'Em Análise').length],
+                ['Em Investigação', monthReports.filter(r => r.status === 'Em Investigação').length],
+                ['Resolvidos', monthReports.filter(r => r.status === 'Resolvido').length]
+            ];
 
             docPdf.autoTable({
                 startY: 40,
-                head: [['Métrica', 'Total / Média']],
-                body: [
-                    ['Total de Relatos Registrados', monthReports.length],
-                    ['Relatos em Triagem', triagem],
-                    ['Relatos em Investigação', investigacao],
-                    ['Relatos Resolvidos', resolvido],
-                    ['Tempo Médio de Resolução (Ciclo Completo)', avgCycleTime]
-                ],
-                theme: 'striped',
+                head: [['Indicador', 'Quantidade']],
+                body: metrics,
+                theme: 'grid',
                 headStyles: { fillColor: [220, 38, 38] }
             });
 
-            docPdf.text('Detalhamento de Ocorrências', 14, docPdf.lastAutoTable.finalY + 15);
-            
-            const tableData = monthReports.map(r => [
+            const details = monthReports.map(r => [
                 r.protocol,
                 r.category,
                 r.status,
-                r.timestamp ? new Date(r.timestamp.seconds * 1000).toLocaleDateString('pt-BR') : 'N/A'
+                new Date(r.timestamp.seconds * 1000).toLocaleDateString('pt-BR')
             ]);
 
             docPdf.autoTable({
-                startY: docPdf.lastAutoTable.finalY + 20,
-                head: [['Protocolo', 'Categoria', 'Status', 'Data']],
-                body: tableData,
-                theme: 'grid'
+                startY: docPdf.lastAutoTable.finalY + 15,
+                head: [['Prot.', 'Categoria', 'Status', 'Data']],
+                body: details,
+                theme: 'striped'
             });
 
-            docPdf.save(`VRZ_Integrity_Report_${targetMonth}.pdf`);
-            showToast("Relatório Gerado");
-        };
+            docPdf.save(`VRZ_Integrity_${targetMonth}.pdf`);
+            showToast("PDF Gerado");
+        });
 
         function loadReportsAdmin() {
             if (!isAdmin) return;
@@ -624,24 +600,23 @@
             onSnapshot(ref, (snap) => {
                 const list = document.getElementById('reportsList');
                 const allDocs = snap.docs.map(doc => ({id: doc.id, ...doc.data()}));
-                lastFullDataSnapshot = allDocs; // Cache para PDF
+                lastFullDataSnapshot = allDocs;
                 
-                // Atualizar Contadores e Gráfico
-                const triagemCount = allDocs.filter(d => d.status === 'Em Análise').length;
-                const investigacaoCount = allDocs.filter(d => d.status === 'Em Investigação').length;
-                const resolvidoCount = allDocs.filter(d => d.status === 'Resolvido').length;
-                updateAdminChart(triagemCount, investigacaoCount, resolvidoCount);
+                const t = allDocs.filter(d => d.status === 'Em Análise').length;
+                const i = allDocs.filter(d => d.status === 'Em Investigação').length;
+                const r = allDocs.filter(d => d.status === 'Resolvido').length;
+                updateAdminChart(t, i, r);
 
-                const filteredDocs = (currentAdminTab === 'Todos' ? allDocs : allDocs.filter(d => d.status === currentAdminTab))
-                                         .sort((a,b) => (b.timestamp?.seconds || 0) - (a.timestamp?.seconds || 0));
+                const filtered = (currentAdminTab === 'Todos' ? allDocs : allDocs.filter(d => d.status === currentAdminTab))
+                                 .sort((a,b) => (b.timestamp?.seconds || 0) - (a.timestamp?.seconds || 0));
 
                 list.innerHTML = '';
-                if (filteredDocs.length === 0) {
-                    list.innerHTML = `<p class="text-center py-20 opacity-20 italic">Nenhum registro em "${currentAdminTab}".</p>`;
+                if (filtered.length === 0) {
+                    list.innerHTML = `<p class="text-center py-20 opacity-20 italic">Sem registros em "${currentAdminTab}".</p>`;
                     return;
                 }
 
-                filteredDocs.forEach(data => {
+                filtered.forEach(data => {
                     const div = document.createElement('div');
                     div.className = 'glass p-6 rounded-3xl report-card space-y-4';
                     const time = data.timestamp ? new Date(data.timestamp.seconds * 1000).toLocaleString('pt-BR') : '...';
@@ -649,59 +624,75 @@
                     let attachmentHTML = '';
                     if (data.attachment) {
                         if (data.attachmentType?.startsWith('image/')) {
-                            attachmentHTML = `<div class="mt-2"><img src="${data.attachment}" class="mt-1 rounded-xl max-h-48 border border-white/10"></div>`;
+                            attachmentHTML = `<img src="${data.attachment}" class="mt-2 rounded-xl max-h-48 border border-white/10 cursor-pointer" onclick="window.open('${data.attachment}')">`;
                         } else if (data.attachmentType?.startsWith('video/')) {
-                            attachmentHTML = `<div class="mt-2"><video controls src="${data.attachment}" class="mt-1 rounded-xl max-h-48 w-full border border-white/10"></video></div>`;
+                            attachmentHTML = `<video controls src="${data.attachment}" class="mt-2 rounded-xl max-h-48 w-full border border-white/10"></video>`;
                         }
                     }
 
                     div.innerHTML = `
                         <div class="flex justify-between items-start">
-                            <div><span class="text-red-600 font-black text-[10px] uppercase tracking-widest">${data.category}</span><p class="text-[9px] text-gray-600 uppercase font-mono">${time} • Prot: ${data.protocol}</p></div>
-                            <div class="flex gap-4"><button onclick="window.openReply('${data.id}')" class="text-[8px] text-blue-500 font-black uppercase">Responder</button><button onclick="window.deleteReport('${data.id}')" class="text-[8px] text-gray-800 font-black uppercase">Deletar</button></div>
+                            <div>
+                                <span class="text-red-600 font-black text-[10px] uppercase tracking-widest">${data.category}</span>
+                                <p class="text-[9px] text-gray-600 uppercase font-mono">${time} • Prot: ${data.protocol}</p>
+                            </div>
+                            <div class="flex gap-4">
+                                <button onclick="window.openReply('${data.id}')" class="text-[8px] text-blue-500 font-black uppercase">Responder</button>
+                                <button onclick="window.deleteReport('${data.id}')" class="text-[8px] text-gray-800 font-black uppercase">Excluir</button>
+                            </div>
                         </div>
                         <p class="text-gray-300 italic text-sm">"${data.text}"</p>
                         ${attachmentHTML}
                         <div class="flex flex-wrap gap-2 pt-2">
-                             ${data.status !== 'Em Análise' ? `<button onclick="window.updateStatus('${data.id}', 'Em Análise')" class="text-[7px] border border-white/10 px-3 py-1.5 rounded-full hover:bg-white/5">Voltar para Triagem</button>` : ''}
+                             ${data.status !== 'Em Análise' ? `<button onclick="window.updateStatus('${data.id}', 'Em Análise')" class="text-[7px] border border-white/10 px-3 py-1.5 rounded-full hover:bg-white/5">Triagem</button>` : ''}
                              ${data.status !== 'Em Investigação' ? `<button onclick="window.updateStatus('${data.id}', 'Em Investigação')" class="text-[7px] border border-yellow-600/20 px-3 py-1.5 rounded-full hover:bg-yellow-600/10 text-yellow-600">Investigar</button>` : ''}
                              ${data.status !== 'Resolvido' ? `<button onclick="window.updateStatus('${data.id}', 'Resolvido')" class="text-[7px] border border-green-600/20 px-3 py-1.5 rounded-full hover:bg-green-600/10 text-green-600">Resolver</button>` : ''}
                         </div>
-                        ${data.response ? `<div class="bg-blue-600/5 p-3 rounded-xl border border-blue-600/10 w-full"><span class="text-[8px] font-black uppercase text-blue-400">Resposta:</span><p class="text-xs italic text-gray-400">${data.response}</p></div>` : ''}
+                        ${data.response ? `<div class="bg-blue-600/5 p-3 rounded-xl border border-blue-600/10 w-full"><span class="text-[8px] font-black uppercase text-blue-400">Feedback Enviado:</span><p class="text-xs italic text-gray-400">${data.response}</p></div>` : ''}
                     `;
                     list.appendChild(div);
                 });
             });
         }
 
-        window.deleteReport = async (id) => { if(isAdmin && confirm("Excluir?")) await deleteDoc(doc(db, 'artifacts', appId, 'public', 'data', 'reports', id)); };
+        // Global functions for inline handlers
+        window.deleteReport = async (id) => { if(isAdmin && confirm("Confirmar exclusão definitiva?")) await deleteDoc(doc(db, 'artifacts', appId, 'public', 'data', 'reports', id)); };
         window.openReply = (id) => { document.getElementById('replyReportId').value = id; document.getElementById('modalReply').classList.remove('hidden'); };
-        window.submitReply = async () => {
+        
+        document.getElementById('saveReplyBtn').addEventListener('click', async () => {
             const id = document.getElementById('replyReportId').value;
             const reply = document.getElementById('replyText').value.trim();
             if (reply) { 
-                await updateDoc(doc(db, 'artifacts', appId, 'public', 'data', 'reports', id), { 
-                    response: reply,
-                    updatedAt: serverTimestamp() // Atualiza marcação de tempo para cálculo de performance
-                }); 
+                await updateDoc(doc(db, 'artifacts', appId, 'public', 'data', 'reports', id), { response: reply, updatedAt: serverTimestamp() }); 
                 document.getElementById('modalReply').classList.add('hidden'); 
                 document.getElementById('replyText').value = ''; 
+                showToast("Feedback salvo");
             }
-        };
+        });
+
         window.updateStatus = async (id, status) => { 
-            if(isAdmin) {
-                await updateDoc(doc(db, 'artifacts', appId, 'public', 'data', 'reports', id), { 
-                    status: status,
-                    updatedAt: serverTimestamp() // Atualiza marcação de tempo para cálculo de performance
-                }); 
-            }
+            if(isAdmin) await updateDoc(doc(db, 'artifacts', appId, 'public', 'data', 'reports', id), { status: status, updatedAt: serverTimestamp() }); 
         };
+
         window.closeModal = () => { document.getElementById('modalSuccess').classList.add('hidden'); showPage('home'); };
-        window.copyProtocol = () => {
+
+        document.getElementById('copyProtocolBtn').addEventListener('click', () => {
             const protocol = document.getElementById('protocolCode').innerText;
-            const temp = document.createElement('textarea'); temp.value = protocol; document.body.appendChild(temp); temp.select(); document.execCommand('copy'); document.body.removeChild(temp); showToast("Copiado");
-        };
-        function showToast(msg) { const toast = document.getElementById('toast'); toast.innerText = msg; toast.classList.add('show'); setTimeout(() => toast.classList.remove('show'), 3000); }
+            const temp = document.createElement('textarea');
+            temp.value = protocol;
+            document.body.appendChild(temp);
+            temp.select();
+            document.execCommand('copy');
+            document.body.removeChild(temp);
+            showToast("Protocolo copiado");
+        });
+
+        function showToast(msg) { 
+            const toast = document.getElementById('toast'); 
+            toast.innerText = msg; 
+            toast.classList.add('show'); 
+            setTimeout(() => toast.classList.remove('show'), 3000); 
+        }
     </script>
 </body>
 </html>
