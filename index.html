@@ -182,20 +182,20 @@
             <div class="grid grid-cols-1 md:grid-cols-3 gap-6 pt-12">
                 <div class="glass p-6 rounded-3xl border-t border-red-600/20">
                     <h3 class="text-xs font-black uppercase text-red-600 mb-2 italic">Sigilo Absoluto</h3>
-                    <p class="text-[10px] text-gray-500 italic">Não coletamos IP ou qualquer metadado que possa te identificar.</p>
+                    <p class="text-[10px] text-gray-500 italic">Anonimato total garantido por criptografia e protocolos de segurança avançados.</p>
                 </div>
                 <div class="glass p-6 rounded-3xl border-t border-white/10">
                     <h3 class="text-xs font-black uppercase text-white mb-2 italic">Proteção Legal</h3>
-                    <p class="text-[10px] text-gray-500 italic">Garantimos que não haverá retaliações a denunciantes de boa fé.</p>
+                    <p class="text-[10px] text-gray-500 italic">Proteção integral contra retaliações, conforme as normas de conformidade vigentes.</p>
                 </div>
                 <div class="glass p-6 rounded-3xl border-t border-white/10">
                     <h3 class="text-xs font-black uppercase text-white mb-2 italic">Ação Imediata</h3>
-                    <p class="text-[10px] text-gray-500 italic">Cada relato é analisado individualmente por nós e respondido a você</p>
+                    <p class="text-[10px] text-gray-500 italic">Avaliação criteriosa e feedbacks constantes sobre o andamento do processo.</p>
                 </div>
             </div>
             
             <div class="text-center pt-10">
-                <button onclick="openAdminModal()" class="text-[8px] font-bold uppercase italic text-gray-800 admin-btn">Área de Gestão Ética</button>
+                <button onclick="openAdminModal()" class="text-[8px] font-bold uppercase italic text-gray-800 admin-btn">Área Administrativa</button>
             </div>
         </section>
 
@@ -321,7 +321,7 @@
 
     <div id="modalAdminLogin" class="hidden fixed inset-0 z-[200] flex items-center justify-center p-6 bg-black/90 backdrop-blur-md">
         <div class="glass p-8 rounded-[2.5rem] w-full max-w-sm space-y-6">
-            <h3 class="text-lg font-black uppercase italic text-center">Auditoria Ética</h3>
+            <h3 class="text-lg font-black uppercase italic text-center">Área Administrativa</h3>
             <div class="space-y-4">
                 <div class="space-y-2">
                     <label class="text-[9px] uppercase font-black text-gray-500 tracking-widest">Usuário</label>
@@ -329,7 +329,15 @@
                 </div>
                 <div class="space-y-2">
                     <label class="text-[9px] uppercase font-black text-gray-500 tracking-widest">Senha de Acesso</label>
-                    <input type="password" id="adminPass" class="input-field text-center">
+                    <div class="relative">
+                        <input type="password" id="adminPass" class="input-field text-center pr-10">
+                        <button type="button" id="togglePassBtn" class="absolute right-3 top-1/2 -translate-y-1/2 text-gray-600 hover:text-red-600 transition-colors">
+                            <svg xmlns="http://www.w3.org/2000/svg" id="eyeIcon" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
+                            </svg>
+                        </button>
+                    </div>
                 </div>
             </div>
             <div class="flex gap-2">
@@ -371,61 +379,66 @@
         import { getAuth, signInAnonymously, signInWithCustomToken, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
         import { getFirestore, collection, addDoc, onSnapshot, serverTimestamp, doc, deleteDoc, updateDoc } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
 
+        // Variáveis globais
+        let auth, db, appId;
+        let user = null, isAdmin = false, currentAdminTab = 'Em Análise', adminChart = null, lastFullDataSnapshot = [];
+
         // Inicialização do EmailJS
         if (typeof window.emailjs !== 'undefined') {
             window.emailjs.init("EgYkC7t4ZAKiOVnwM");
         }
 
-        // Inicialização robusta do Firebase para evitar bloqueios de carregamento
-        let auth, db, appId;
-
-        const initFirebase = () => {
+        const setupFirebase = async () => {
             try {
-                const firebaseConfig = typeof __firebase_config !== 'undefined' ? JSON.parse(__firebase_config) : null;
-                if (!firebaseConfig) return false;
-
+                const firebaseConfig = JSON.parse(__firebase_config);
                 appId = typeof __app_id !== 'undefined' ? __app_id : 'vrz-integrity-v1';
                 const app = initializeApp(firebaseConfig);
                 auth = getAuth(app);
                 db = getFirestore(app);
-                return true;
-            } catch (err) {
-                console.error("Firebase Initialization Error:", err);
-                return false;
-            }
-        };
 
-        let user = null, isAdmin = false, currentAdminTab = 'Em Análise', adminChart = null, lastFullDataSnapshot = [];
-
-        window.addEventListener('load', async () => {
-            const loader = document.getElementById('loader');
-            const removeLoader = () => { if(loader) { loader.style.opacity = '0'; setTimeout(() => loader.remove(), 500); } };
-            
-            // Failsafe: Remove o loader após 5 segundos mesmo que algo falhe
-            setTimeout(removeLoader, 5000);
-
-            document.getElementById('reportMonthSelect').value = new Date().toISOString().substring(0, 7);
-
-            if (!initFirebase()) {
-                console.error("Firebase could not be initialized.");
-                removeLoader();
-                return;
-            }
-
-            try {
                 if (typeof __initial_auth_token !== 'undefined' && __initial_auth_token) {
                     await signInWithCustomToken(auth, __initial_auth_token);
                 } else {
                     await signInAnonymously(auth);
                 }
-            } catch (e) { 
-                console.error("Auth Error:", e); 
-            } finally { 
-                onAuthStateChanged(auth, (u) => { 
-                    user = u; 
-                    removeLoader(); 
-                }); 
+                
+                onAuthStateChanged(auth, (u) => { user = u; });
+                return true;
+            } catch (err) {
+                console.error("Firebase Init Error:", err);
+                return false;
             }
+        };
+
+        window.addEventListener('load', async () => {
+            const loader = document.getElementById('loader');
+            const removeLoader = () => { if(loader) { loader.style.opacity = '0'; setTimeout(() => loader.remove(), 500); } };
+            
+            setTimeout(removeLoader, 4000); 
+            document.getElementById('reportMonthSelect').value = new Date().toISOString().substring(0, 7);
+
+            await setupFirebase();
+            removeLoader();
+
+            // Toggle Password Visibility
+            const togglePassBtn = document.getElementById('togglePassBtn');
+            const adminPass = document.getElementById('adminPass');
+            const eyeIcon = document.getElementById('eyeIcon');
+
+            togglePassBtn.addEventListener('click', () => {
+                if (adminPass.type === 'password') {
+                    adminPass.type = 'text';
+                    eyeIcon.innerHTML = `
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13.875 18.825A10.05 10.05 0 0112 19c-4.478 0-8.268-2.943-9.543-7a9.97 9.97 0 011.563-3.029m5.858.908a3 3 0 114.243 4.243M9.878 9.878l4.242 4.242M9.88 9.88l-3.29-3.29m7.532 7.532l3.29 3.29M3 3l18 18" />
+                    `;
+                } else {
+                    adminPass.type = 'password';
+                    eyeIcon.innerHTML = `
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
+                    `;
+                }
+            });
         });
 
         window.showPage = (id) => {
@@ -456,11 +469,23 @@
 
         document.getElementById('reportForm').addEventListener('submit', async (e) => {
             e.preventDefault();
-            if (!user || !db) return;
-            const btn = document.getElementById('submitBtn'), category = document.getElementById('reportCategory').value, text = document.getElementById('reportText').value.trim(), fileInput = document.getElementById('reportFile');
+            const btn = document.getElementById('submitBtn');
+            
+            if (!db || !user) {
+                showToast("Conectando ao servidor seguro...");
+                await setupFirebase();
+                if (!db || !user) return;
+            }
+
+            const category = document.getElementById('reportCategory').value;
+            const text = document.getElementById('reportText').value.trim();
+            const fileInput = document.getElementById('reportFile');
+            
             const protocol = "VRZ-" + Math.random().toString(36).substr(2, 4).toUpperCase() + "-" + Math.random().toString(36).substr(2, 4).toUpperCase();
             const dateTime = new Date().toLocaleString('pt-BR');
-            btn.disabled = true; btn.innerText = "Processando...";
+            
+            btn.disabled = true; 
+            btn.innerText = "Criptografando...";
 
             let fileData = null, fileType = null;
             if (fileInput.files[0]) {
@@ -489,7 +514,13 @@
                 document.getElementById('fileNameDisplay').innerText = "Nenhum arquivo selecionado";
                 document.getElementById('protocolCode').innerText = protocol;
                 document.getElementById('modalSuccess').classList.remove('hidden');
-            } catch (e) { showToast("Erro no servidor."); } finally { btn.disabled = false; btn.innerText = "Enviar Relato Criptografado"; }
+            } catch (e) { 
+                showToast("Erro de envio. Tente novamente."); 
+                console.error(e);
+            } finally { 
+                btn.disabled = false; 
+                btn.innerText = "Enviar Relato Criptografado"; 
+            }
         });
 
         document.getElementById('checkProtocolBtn').addEventListener('click', () => {
@@ -507,7 +538,11 @@
         });
 
         window.openAdminModal = () => document.getElementById('modalAdminLogin').classList.remove('hidden');
-        window.closeAdminModal = () => document.getElementById('modalAdminLogin').classList.add('hidden');
+        window.closeAdminModal = () => {
+            document.getElementById('modalAdminLogin').classList.add('hidden');
+            document.getElementById('adminPass').type = 'password';
+        };
+        
         document.getElementById('verifyAdminBtn').addEventListener('click', () => {
             const u = document.getElementById('adminUser').value, p = document.getElementById('adminPass').value;
             const valid = { "Lucas.Sabino": "Vrz2024", "Eduardo.Rocha": "Helito@1313" };
