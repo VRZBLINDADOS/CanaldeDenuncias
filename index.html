@@ -379,45 +379,56 @@
         import { getAuth, signInAnonymously, signInWithCustomToken, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
         import { getFirestore, collection, addDoc, onSnapshot, serverTimestamp, doc, deleteDoc, updateDoc } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
 
-        // Variáveis globais
-        let auth, db, appId;
-        let user = null, isAdmin = false, currentAdminTab = 'Em Análise', adminChart = null, lastFullDataSnapshot = [];
+        // Variáveis de estado global
+        let auth, db, appId, user = null;
+        let isAdmin = false, currentAdminTab = 'Em Análise', adminChart = null, lastFullDataSnapshot = [];
 
         // Inicialização do EmailJS
         if (typeof window.emailjs !== 'undefined') {
             window.emailjs.init("EgYkC7t4ZAKiOVnwM");
         }
 
-        const setupFirebase = async () => {
-            try {
-                const firebaseConfig = JSON.parse(__firebase_config);
-                appId = typeof __app_id !== 'undefined' ? __app_id : 'vrz-integrity-v1';
-                const app = initializeApp(firebaseConfig);
-                auth = getAuth(app);
-                db = getFirestore(app);
-
-                if (typeof __initial_auth_token !== 'undefined' && __initial_auth_token) {
-                    await signInWithCustomToken(auth, __initial_auth_token);
-                } else {
-                    await signInAnonymously(auth);
-                }
+        // Função para garantir conexão ao Firebase
+        const ensureConnection = () => {
+            return new Promise((resolve) => {
+                if (db && user) return resolve(true);
                 
-                onAuthStateChanged(auth, (u) => { user = u; });
-                return true;
-            } catch (err) {
-                console.error("Firebase Init Error:", err);
-                return false;
-            }
+                try {
+                    const firebaseConfig = JSON.parse(__firebase_config);
+                    appId = typeof __app_id !== 'undefined' ? __app_id : 'vrz-integrity-v1';
+                    const app = initializeApp(firebaseConfig);
+                    auth = getAuth(app);
+                    db = getFirestore(app);
+
+                    const unsubscribe = onAuthStateChanged(auth, (u) => {
+                        user = u;
+                        if (u) {
+                            unsubscribe();
+                            resolve(true);
+                        }
+                    });
+
+                    // Tenta login
+                    if (typeof __initial_auth_token !== 'undefined' && __initial_auth_token) {
+                        signInWithCustomToken(auth, __initial_auth_token).catch(() => signInAnonymously(auth));
+                    } else {
+                        signInAnonymously(auth);
+                    }
+                } catch (err) {
+                    console.error("Connection Error:", err);
+                    resolve(false);
+                }
+            });
         };
 
         window.addEventListener('load', async () => {
             const loader = document.getElementById('loader');
             const removeLoader = () => { if(loader) { loader.style.opacity = '0'; setTimeout(() => loader.remove(), 500); } };
             
-            setTimeout(removeLoader, 4000); 
+            setTimeout(removeLoader, 5000); // Failsafe
             document.getElementById('reportMonthSelect').value = new Date().toISOString().substring(0, 7);
 
-            await setupFirebase();
+            await ensureConnection();
             removeLoader();
 
             // Toggle Password Visibility
@@ -471,10 +482,16 @@
             e.preventDefault();
             const btn = document.getElementById('submitBtn');
             
-            if (!db || !user) {
-                showToast("Conectando ao servidor seguro...");
-                await setupFirebase();
-                if (!db || !user) return;
+            btn.disabled = true; 
+            btn.innerText = "Processando...";
+
+            // Garante conexão antes de enviar
+            const connected = await ensureConnection();
+            if (!connected) {
+                showToast("Erro ao conectar ao servidor seguro.");
+                btn.disabled = false;
+                btn.innerText = "Enviar Relato Criptografado";
+                return;
             }
 
             const category = document.getElementById('reportCategory').value;
@@ -483,9 +500,6 @@
             
             const protocol = "VRZ-" + Math.random().toString(36).substr(2, 4).toUpperCase() + "-" + Math.random().toString(36).substr(2, 4).toUpperCase();
             const dateTime = new Date().toLocaleString('pt-BR');
-            
-            btn.disabled = true; 
-            btn.innerText = "Criptografando...";
 
             let fileData = null, fileType = null;
             if (fileInput.files[0]) {
@@ -501,12 +515,7 @@
                 });
 
                 if (window.emailjs) {
-                    const emailParams = { 
-                        date_time: dateTime, 
-                        protocol: protocol, 
-                        category: category, 
-                        description: text
-                    };
+                    const emailParams = { date_time: dateTime, protocol: protocol, category: category, description: text };
                     window.emailjs.send('service_3m22uik', 'template_qvxq7ze', emailParams);
                 }
 
@@ -515,7 +524,7 @@
                 document.getElementById('protocolCode').innerText = protocol;
                 document.getElementById('modalSuccess').classList.remove('hidden');
             } catch (e) { 
-                showToast("Erro de envio. Tente novamente."); 
+                showToast("Erro ao salvar relato. Tente novamente."); 
                 console.error(e);
             } finally { 
                 btn.disabled = false; 
@@ -582,6 +591,8 @@
                     div.innerHTML = `<div class="flex justify-between items-start"><div><span class="text-red-600 font-black text-[10px] uppercase">${data.category}</span><p class="text-[9px] text-gray-600 font-mono">${time} • Prot: ${data.protocol}</p></div><div class="flex gap-4"><button onclick="window.openReply('${data.id}')" class="text-[8px] text-blue-500 font-black uppercase">Responder</button><button onclick="window.requestDelete('${data.id}')" class="text-[8px] text-gray-800 font-black uppercase">Excluir</button></div></div><p class="text-gray-300 italic text-sm">"${data.text}"</p>${attHTML}<div class="flex flex-wrap gap-2 pt-2">${data.status !== 'Em Análise' ? `<button onclick="window.updateStatus('${data.id}', 'Em Análise')" class="text-[7px] border border-white/10 px-3 py-1.5 rounded-full">Triagem</button>` : ''}${data.status !== 'Em Investigação' ? `<button onclick="window.updateStatus('${data.id}', 'Em Investigação')" class="text-[7px] border border-yellow-600/20 px-3 py-1.5 rounded-full text-yellow-600">Investigar</button>` : ''}${data.status !== 'Resolvido' ? `<button onclick="window.updateStatus('${data.id}', 'Resolvido')" class="text-[7px] border border-green-600/20 px-3 py-1.5 rounded-full text-green-600">Resolver</button>` : ''}</div>`;
                     list.appendChild(div);
                 });
+            }, (error) => {
+                console.error("Firestore Listen Error:", error);
             });
         }
 
