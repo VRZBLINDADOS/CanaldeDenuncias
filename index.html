@@ -375,7 +375,7 @@
 
         // Variáveis de ambiente
         const firebaseConfig = typeof __firebase_config !== 'undefined' ? JSON.parse(__firebase_config) : {
-            apiKey: "",
+            apiKey: "AIzaSyAfvmNT31fj5uQsDmb-q-kziFpWXMRxMzs",
             authDomain: "portal-vrz-81ba7.firebaseapp.com",
             projectId: "portal-vrz-81ba7",
             storageBucket: "portal-vrz-81ba7.firebasestorage.app",
@@ -409,6 +409,7 @@
                     user = u;
                 });
             } catch (e) {
+                console.error("Firebase init error:", e);
                 showToast("Erro de conexão com servidor.");
             } finally {
                 setTimeout(() => { 
@@ -527,6 +528,7 @@
                 document.getElementById('protocolCode').innerText = protocol;
                 document.getElementById('modalSuccess').classList.remove('hidden');
             } catch (e) { 
+                console.error("Submission error:", e);
                 showToast("Erro ao processar envio."); 
             } finally {
                 btn.disabled = false; btn.innerText = "Enviar Relato Criptografado";
